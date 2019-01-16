@@ -1,0 +1,31 @@
+#!/bin/bash
+
+source environment.conf
+
+exp=$1
+
+if [ ! -d output/ ]; then
+	mkdir output
+	mkdir inputTiff
+	mkdir inputTxt
+	mkdir meta
+	cd output
+	mkdir vanilla
+	mkdir umbu
+	mkdir opt
+	cd -
+fi
+
+
+if [ ! -d $promethee_path ]; then
+	git clone $promethee_url -b $promethee_branch
+	git --git-dir=$promethee_path/.git checkout --detach $promethee_version
+fi	
+
+if [ ! -f $promethee_path/run ]; then
+	cd $promethee_path
+	make
+	cd -
+fi
+
+./$exp

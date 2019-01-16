@@ -1,0 +1,26 @@
+source experiment0/experiment0.conf
+
+if [ ! -d experiment0/$random_path ]; then
+	git clone $tiffutils_url -b $tiffutils_branch
+	git --git-dir=$tiffutils_path/.git checkout --detach $tiffutils_version
+	
+	mkdir experiment0/$random_path
+	mv $tiffutils_path/tifGenerator.cpp experiment0/$random_path/randomizeTiff.cpp
+	mv $tiffutils_path/reader.cpp experiment0/$random_path/tiff_to_txt.cpp
+
+	cd experiment0/$random_path
+	g++ -std=c++14 randomizeTiff.cpp -o randomizeTiff -ltiff
+	g++ -std=c++14 tiff_to_txt.cpp -o tiff_to_txt -ltiff
+	cd -
+
+	rm $tiffutils_path -rf
+fi
+
+for ((i = 0; i < ${#random_sizes[@]}; i++));
+do
+	mkdir inputTxt/random${random_sizes[i]}
+	mkdir meta/random${random_sizes[i]}
+	./experiment0/$random_path/randomizeTiff ${random_sizes[i]} inputTiff/random${random_sizes[i]}.tif -R 
+	./experiment0/$random_path/tiff_to_txt inputTiff/random${random_sizes[i]}.tif inputTxt/random${random_sizes[i]}/1.input
+	cp experiment0/template.meta  meta/random${random_sizes[i]}/1.meta
+done

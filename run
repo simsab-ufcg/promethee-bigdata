@@ -1,0 +1,27 @@
+#!/bin/bash
+
+source environment.conf
+
+mkdir temp
+
+for number in `seq 1 10`
+do
+
+	for d in inputTiff/*;
+	do	
+		cp $d $promethee_path/curr.tif
+		cd $promethee_path
+		(time $umbu_cmd) 2> $(basename $d).$number.out
+		cd -
+		mv $promethee_path/$(basename $d).$number.out output/umbu/$(basename $d).$number.out
+	done
+
+	for d in inputTxt/*/;
+	do
+		(time $opt_cmd $d meta/$(basename $d) temp/) 2> output/opt/$(basename $d).$number.out
+		(time $vanilla_cmd $d meta/$(basename $d) temp/) 2> output/vanilla/$(basename $d).$number.out
+	done
+
+done
+
+rm -rf temp
