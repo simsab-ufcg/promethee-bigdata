@@ -1,0 +1,65 @@
+#!/bin/bash
+
+source experiment1/experiment1.conf
+
+if [ ! -d experiment1/$download_path ]; then
+	git clone $tiffutils_url -b $tiffutils_branch
+	git --git-dir=$tiffutils_path/.git checkout --detach $tiffutils_version
+	
+	mkdir experiment1/$download_path
+	mv $tiffutils_path/reader.cpp experiment1/$download_path/tiff_to_txt.cpp
+
+	cd experiment1/$download_path
+	g++ -std=c++14 tiff_to_txt.cpp -o tiff_to_txt -ltiff
+	cd -
+
+	rm $tiffutils_path -rf
+fi
+
+if [ ! -f experiment1/$download_path/usualRepetition.tif ]; then
+	wget $medium_url
+	mv $medium_name experiment1/$download_path/usualRepetition.tif
+fi
+
+if [ ! -f experiment1/$download_path/highRepetition.tif ]; then
+	wget $high_url
+	mv $high_name experiment1/$download_path/highRepetition.tif
+fi
+
+if [ ! -f experiment1/$download_path/lowRepetition.tif ]; then
+	wget $low_url
+	mv $low_name experiment1/$download_path/lowRepetition.tif
+fi
+
+if [ ! -f inputTiff/usualRepetition.tif ]; then
+	cp experiment1/$download_path/usualRepetition.tif inputTiff/usualRepetition.tif
+fi
+
+if [ ! -f inputTiff/lowRepetition.tif ]; then
+	cp experiment1/$download_path/lowRepetition.tif inputTiff/lowRepetition.tif
+fi
+
+if [ ! -f inputTiff/highRepetition.tif ]; then
+	cp experiment1/$download_path/highRepetition.tif inputTiff/highRepetition.tif
+fi
+
+if [ ! -f inputTxt/usualRepetition/1.input ]; then
+	mkdir inputTxt/usualRepetition
+	mkdir meta/usualRepetition
+	./experiment1/$download_path/tiff_to_txt inputTiff/usualRepetition.tif inputTxt/usualRepetition/1.input
+	cp experiment1/template.meta meta/usualRepetition/1.meta
+fi
+
+if [ ! -f inputTxt/lowRepetition/1.input ]; then
+	mkdir inputTxt/lowRepetition
+	mkdir meta/lowRepetition
+	./experiment1/$download_path/tiff_to_txt inputTiff/lowRepetition.tif inputTxt/lowRepetition/1.input
+	cp experiment1/template.meta meta/lowRepetition/1.meta
+fi
+
+if [ ! -f inputTxt/highRepetition/1.input ]; then
+	mkdir inputTxt/highRepetition
+	mkdir meta/highRepetition
+	./experiment1/$download_path/tiff_to_txt inputTiff/highRepetition.tif inputTxt/highRepetition/1.input
+	cp experiment1/template.meta meta/highRepetition/1.meta
+fi
