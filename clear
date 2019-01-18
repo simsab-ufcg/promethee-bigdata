@@ -5,6 +5,7 @@ rm -rf inputTxt
 rm -rf meta
 rm -rf Promethee2
 rm -rf temp
+mv output previousOutput
 rm -rf experiment0/randomGenerator
 rm -rf experiment1/downloads
 rm -rf experiment2/randomGenerator

@@ -1,0 +1,9 @@
+TIFFReadDirectory: Warning, Unknown field with tag 33550 (0x830e) encountered.
+TIFFReadDirectory: Warning, Unknown field with tag 33922 (0x8482) encountered.
+TIFFReadDirectory: Warning, Unknown field with tag 34735 (0x87af) encountered.
+TIFFReadDirectory: Warning, Unknown field with tag 34737 (0x87b1) encountered.
+TIFFReadDirectory: Warning, Unknown field with tag 42113 (0xa481) encountered.
+
+real	0m0.378s
+user	0m0.375s
+sys	0m0.000s

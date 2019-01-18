@@ -4,7 +4,7 @@ source environment.conf
 
 mkdir temp
 
-for number in `seq 1 15`
+for number in `seq 1 10`
 do
 
 	for d in inputTiff/*;
