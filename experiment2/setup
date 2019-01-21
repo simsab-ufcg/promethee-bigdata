@@ -22,7 +22,7 @@ for ((i = 0; i < ${#random_sizes[@]}; i++));
 do
 	mkdir inputTxt/random${random_sizes[i]}
 	mkdir meta/random${random_sizes[i]}
-	./experiment2/$random_path/randomizeTiff 256 inputTiff/random${random_sizes[i]}.tif ${random_sizes[i]}
+	./experiment2/$random_path/randomizeTiff 420 inputTiff/random${random_sizes[i]}.tif ${random_sizes[i]}
 	./experiment2/$random_path/tiff_to_txt inputTiff/random${random_sizes[i]}.tif inputTxt/random${random_sizes[i]}/1.input
 	cp experiment2/template.meta  meta/random${random_sizes[i]}/1.meta
 done
