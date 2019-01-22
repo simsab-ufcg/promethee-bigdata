@@ -19,6 +19,7 @@ struct PrometheeUmbu : Promethee {
 
     // info related to criterion file
     int height, width, samplePerPixel;
+    ldouble **raster;
 
     void init(vector<string> args, int divideBy);
 

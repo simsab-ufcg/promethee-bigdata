@@ -49,12 +49,33 @@ void PrometheeUmbu::init(vector<string> args, int divideBy){
     for(int i = 2; i < args.size(); i++)
         params.push_back(atof(args[i].c_str()));
 
+    TIFF *input = TIFFOpen(this->filename.c_str(), "rm");
+    TIFFGetField(input, TIFFTAG_IMAGEWIDTH, &this->width);
+    TIFFGetField(input, TIFFTAG_IMAGELENGTH, &this->height);
+    TIFFGetField(input, TIFFTAG_SAMPLESPERPIXEL, &this->samplePerPixel);
+    ldouble *line = new ldouble[this->width];
+
+    this->raster = (ldouble **)malloc(this->height * sizeof(ldouble *)); 
+    for (int i=0; i < this->height; i++) 
+         this->raster[i] = (ldouble *)malloc(this->width * sizeof(ldouble)); 
+    
+    for(int i = 0; i < this->height; i++){
+        TIFFReadScanline(input, line, i);
+        for(int j = 0; j < this->width; j++){
+            this->raster[i][j] = line[j];
+        }
+    }
+
+    TIFFClose(input);
+
     // build specific funcion implementation
     if(type == "linear"){
         this->function = new LinearUmbuFunction(params);
     } else if(type == "linearWithIndifference"){
         this->function = new LinearWithIndifferenceUmbuFunction(params);
     }
+
+
 }
 
 /**
@@ -66,32 +87,25 @@ void PrometheeUmbu::init(vector<string> args, int divideBy){
  * */
 void PrometheeUmbu::generateChunkOutTifUnbu(string &outputFile, string &nextFile, TIFF *input, vector<ldouble> & values, vector<ldouble> & sumAccum, vector<unsigned int> &cntAccum){
 
-    TIFF *out = TIFFOpen(outputFile.c_str(), "rm");
-    TIFF *nxt = openFile(nextFile, this->width, this->height);
 
     ldouble *line = new ldouble[this->width];
     ldouble *outline = new ldouble[this->width];
     for (int i = 0; i < this->height; i++){
 
-        TIFFReadScanline(input, line, i);
-        TIFFReadScanline(out, outline, i);
         for (int j = 0; j < this->width; j++) {
-            if(isnan(line[j])) {
+            if(isnan(this->raster[i][j])) {
                 // Write nan to correspond with input
                 outline[j] += -sqrt(-1.0); // ?? this should be nan
             } else{
-                ldouble positiveDelta = (*this->function).getPositiveDelta(values, line[j], sumAccum, weight, cntAccum);
-                ldouble negativeDelta = (*this->function).getNegativeDelta(values, line[j], sumAccum, weight, cntAccum);
+                ldouble positiveDelta = (*this->function).getPositiveDelta(values, this->raster[i][j], sumAccum, weight, cntAccum);
+                ldouble negativeDelta = (*this->function).getNegativeDelta(values, this->raster[i][j], sumAccum, weight, cntAccum);
                 // if is not max function, just need to invert negative with positive
                 int mul = this->isMax ? 1 : -1;
                 outline[j] += mul * (positiveDelta - negativeDelta);
             }
         }
 
-        TIFFWriteScanline(nxt, outline, i);
     }
-    TIFFClose(nxt);
-    TIFFClose(out);
 
     // Output is swapped with the next file to keep logic of filenaming
     swap(outputFile, nextFile);
@@ -101,8 +115,6 @@ void PrometheeUmbu::generateChunkOutTifUnbu(string &outputFile, string &nextFile
  * Makes division only after all the flows be defined, to run faster
  * */
 void PrometheeUmbu::divide(string &outputFile, string &nextFile, TIFF *input){
-    TIFF *out = TIFFOpen(outputFile.c_str(), "rm");
-    TIFF *nxt = openFile(nextFile, this->width, this->height);
 
     ldouble *line = new ldouble[this->width];
     ldouble *outline = new ldouble[this->width];
@@ -112,20 +124,15 @@ void PrometheeUmbu::divide(string &outputFile, string &nextFile, TIFF *input){
 
     for (int i = 0; i < this->height; i++){
 
-        TIFFReadScanline(input, line, i);
-        TIFFReadScanline(out, outline, i);
         for (int j = 0; j < this->width; j++) {
-            if(isnan(line[j])) {
+            if(isnan(this->raster[i][j])) {
                 outline[j] += -sqrt(-1.0); // ?? this should be nan
             } else {
                 outline[j] /= denominator;
             }
         }
 
-        TIFFWriteScanline(nxt, outline, i);
     }
-    TIFFClose(nxt);
-    TIFFClose(out);
     swap(outputFile, nextFile);
 }
 
@@ -157,19 +164,11 @@ void PrometheeUmbu::processChunk(map<double, int> & cnt, string & outputFile, st
 
 
 void PrometheeUmbu::process(){
-
-    // Open input and get fields need to create similar file for output
-    TIFF *input = TIFFOpen(this->filename.c_str(), "rm");
-    TIFFGetField(input, TIFFTAG_IMAGEWIDTH, &this->width);
-    TIFFGetField(input, TIFFTAG_IMAGELENGTH, &this->height);
-    TIFFGetField(input, TIFFTAG_SAMPLESPERPIXEL, &this->samplePerPixel);
+    TIFF *input;
 
     // Name of files to use during processing
     string nextFile = "nxt." + this->filename;
     string outputFile = "out." + this->filename;
-
-    // Create output file
-    setupOutput(outputFile, this->width, this->height);
 
     ldouble *line = new ldouble[width];
 
@@ -179,10 +178,9 @@ void PrometheeUmbu::process(){
     this->area = 0;
     for(int i = 0; i < height; i++){
         // Read line of input and add to map and area
-        TIFFReadScanline(input, line, i);
         for(int j = 0; j < width; j++){
-            if(!isnan(line[j])){
-                cnt[line[j]]++;
+            if(!isnan(this->raster[i][j])){
+                cnt[this->raster[i][j]]++;
                 this->area++;
             }
         }
@@ -207,5 +205,4 @@ void PrometheeUmbu::process(){
         rename(outputFile.c_str(), nextFile.c_str());
     }
 
-    TIFFClose(input);
 }
