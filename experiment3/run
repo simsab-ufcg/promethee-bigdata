@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for number in `seq 1 5`
+do
+
+	sync
+	echo 3 > /proc/sys/vm/drop_caches
+	./Promethee2/run -um random.tif 1 -chunk=111111111 -ismax -type=linear 1 > results/noIO.$number.4.out
+	sync
+	echo 3 > /proc/sys/vm/drop_caches
+	./Promethee3/run -um random.tif 1 -chunk=111111111 -ismax -type=linear 1 > results/IO.$number.4.out
+
+done

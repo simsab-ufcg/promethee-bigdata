@@ -1,0 +1,169 @@
+---
+title: "Promethee Paper"
+author: "Gabriel Felipe"
+date: "February 21, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(reshape2)
+library(plyr)
+library(SparseM)
+library(quantreg)
+```
+
+```{r read_noop_data}
+options(warn = -1)
+experiment_data0 <- read.csv("experiment0.csv", header = T, sep = ",")
+experiment_data1 <- read.csv("experiment1.csv", header = T, sep = ",")
+experiment_data2 <- read.csv("experiment2.csv", header = T, sep = ",")
+```
+
+# Infrastructure and Environment
+
+We configured an experimental environment based on a Linux workstation which runs our Vanilla, Optimized and Umbu solution.
+
+* Mem: 8GB RAM 1600 Mhz
+* CPU: 8vCPUs - Intel(R) Core(TM) i7-4770S @ 3.10GHz CPU
+* Kernel: 4.15.0-43-generic
+* OS: 16.04.5-Ubuntu
+* Hard disk: 1TB SEAGATE 7200 RPM
+* Umbu Chunk Size: \(10^{7}\)
+
+# Experiments
+
+## How these solutions behave as the number of alternatives grows?
+
+### Performance Metric
+
+The performance metric is the duration to run each solution. This duration is given by the elapsed time between the start of the program until the time it is finished.
+
+### Metodology
+
+We executed the multi-criteria analysis on synthetic samples, made of randomly generated values, of 4096, 16385 and 65536 alternatives (in all these cases, we analysed a single criterion).
+
+### Results
+
+```{r vanilla_extrapolation}
+
+vanilla_function = function(x){
+  x * x
+}
+
+m <- ggplot(experiment_data0[experiment_data0$VERSION == 'vanilla',], aes(SIZE * SIZE, TIME)) + geom_point() + labs(x = "Input Size (Alternatives)",  y = "Time (Seconds)", title = "Vanilla Extrapolation")  + theme_bw()
+m + xlim(0,150000) + stat_smooth(method="lm",fullrange=TRUE, formula = y ~ vanilla_function(x), colour = 'red')
+```
+
+```{r opt_extrapolation}
+
+opt_function = function(x){
+  x * (log(x)/log(2))
+}
+
+m <- ggplot(experiment_data0[experiment_data0$VERSION == 'opt',], aes(SIZE * SIZE, TIME)) + geom_point() + labs(x = "Input Size (Alternatives)",  y = "Time (Seconds)", title = "Optmized Extrapolation")  + theme_bw()
+m + xlim(0,150000) + stat_smooth(method="lm",fullrange=TRUE, formula = y ~ opt_function(x), colour = 'green')
+```
+
+```{r umbu_extrapolation}
+
+umbu_function = function(x){
+  x * (log(x)/log(2))
+}
+
+m <- ggplot(experiment_data0[experiment_data0$VERSION == 'umbu',], aes(SIZE * SIZE, TIME)) + geom_point() + labs(x = "Input Size (Alternatives)",  y = "Time (Seconds)", title = "Umbu Extrapolation")  + theme_bw()
+m + xlim(0,150000) + stat_smooth(method="lm",fullrange=TRUE, formula = y ~ umbu_function(x), colour = 'blue')
+```
+
+## How these solutions behave with a distinct frequency of repeated alternative?
+
+### Performance Metric
+
+The performance metric is the duration to run each solution. This duration is given by the elapsed time between the start of the program until the time it is finished.
+
+### Metodology
+
+We executed the multi-criteria analysis on specifics criteria of Seridó region based on his repetition rate. We selected the criteria with larger and smaller repetition rate, in addition to a criterion with typical rate [ in all these cases, we analysed a single criterion ].
+
+
+### Results
+
+``` {r summarize_function}
+summarize <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+
+experiment_data1 <- summarize(experiment_data1, varname = "TIME", groupnames = c("VERSION", "SIZE"))
+```
+
+``` {r frequency_plot_vanilla}
+
+p<- ggplot(experiment_data1[experiment_data1$VERSION == 'vanilla',], aes(SIZE,TIME, fill = VERSION)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(x = "Version",y = "Time (Seconds)", title = "Vanilla Performance", fill = "Frequencies")  + theme_bw()
+p
+
+```
+
+``` {r frequency_plot_vanilla2}
+
+p<- ggplot(experiment_data1[experiment_data1$VERSION == 'vanilla',], aes(VERSION,TIME, fill = SIZE)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(x = "Version",y = "Time (Seconds)", title = "Vanilla Performance", fill = "Frequencies")  + theme_bw()
+p
+
+```
+
+``` {r frequency_plot_umbu-opt}
+
+p<- ggplot(experiment_data1[!experiment_data1$VERSION == 'vanilla',], aes(SIZE,TIME, fill = VERSION)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(x = "Version", y = "Time (Seconds)", title = "Umbu and Optimized Performances", fill = "Frequencies")  + theme_bw() +
+  geom_errorbar(aes(ymin=TIME-sd, ymax=TIME+sd), width=.3, position=position_dodge(.9)) 
+p
+
+```
+
+``` {r frequency_plot_umbu-opt2}
+
+p<- ggplot(experiment_data1[!experiment_data1$VERSION == 'vanilla',], aes(VERSION,TIME, fill = SIZE)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(x = "Version", y = "Time (Seconds)", title = "Umbu and Optimized Performances", fill = "Frequencies")  + theme_bw() +
+  geom_errorbar(aes(ymin=TIME-sd, ymax=TIME+sd), width=.3, position=position_dodge(.9)) 
+p
+
+```
+
+## How our Umbu solution behave as duplication rate grows?
+
+### Performance Metric
+
+Performance was given as the duration to run the algorithm. This duration is given by the elapsed time between the start of the program until the time it finished.
+
+### Metodology
+
+To this end, we executed the multi-criteria analysis on three synthetic samples. The duplication ratio in these samples is 5%, 50%, and 75%. All the samples have 176400 alternatives.
+
+### Results
+
+``` {r umbu_duplication_rate_plot}
+experiment_data2 <- summarize(experiment_data2, varname = "TIME", groupnames = c("VERSION", "SIZE"))
+experiment_data2$SIZE <- as.character(experiment_data2$SIZE)
+p <- ggplot(experiment_data2, aes(VERSION, TIME, fill = SIZE)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(x = "Version", y = "Time (Seconds)", title = "Umbu Performance", fill = "Frequency rate")  + theme_bw() +
+  geom_errorbar(aes(ymin=TIME-sd, ymax=TIME+sd), width=.3, position=position_dodge(.9))
+p
+
+```
+
+
